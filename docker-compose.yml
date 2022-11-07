@@ -15,6 +15,12 @@ services:
       - type: bind
         source: ./aniGamer.db
         target: /app/aniGamer.db
+      - type: bind
+        source: ./cookie.text
+        target: /app/cookie.text
+      - type: bind
+        source: ./sn_list.txt
+        target: /app/sn_list.txt
     ports:
       - "5000:5000"
     restart: unless-stopped

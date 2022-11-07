@@ -25,3 +25,8 @@ Init cookie.txt
 ```bash
 touch cookie.txt
 ```
+
+Init sn_list.txt
+```bash
+touch sn_list.txt
+```
