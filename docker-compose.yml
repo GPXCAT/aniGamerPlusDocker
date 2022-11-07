@@ -16,8 +16,8 @@ services:
         source: ./aniGamer.db
         target: /app/aniGamer.db
       - type: bind
-        source: ./cookie.text
-        target: /app/cookie.text
+        source: ./cookie.txt
+        target: /app/cookie.txt
       - type: bind
         source: ./sn_list.txt
         target: /app/sn_list.txt
