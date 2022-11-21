@@ -3,7 +3,6 @@ export WORK_DIR=$PWD
 
 rm -rf "$WORK_DIR/SourceRepository"
 git clone https://github.com/miyouzi/aniGamerPlus.git "$WORK_DIR/SourceRepository"
-cp -f "$WORK_DIR/SourceRepository/.dockerignore" "$WORK_DIR/.dockerignore"
 cp -f "$WORK_DIR/SourceRepository/sn_list-sample.txt" "$WORK_DIR/sn_list-sample.txt"
 [ ! -f "$WORK_DIR/config.json" ] && cp -f "$WORK_DIR/SourceRepository/config-sample.json" "$WORK_DIR/config.json"
 [ ! -f "$WORK_DIR/sn_list.txt" ] && touch "$WORK_DIR/sn_list.txt"
