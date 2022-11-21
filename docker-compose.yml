@@ -5,7 +5,7 @@ services:
   ani-gamer-plus:
     build:
       context: .
-    image: "ani-gamer-plus:${APP_TAG}"
+    image: "ani-gamer-plus:latest"
     container_name: "ani-gamer-plus"
     volumes:
       - "./bangumi:/app/bangumi"
