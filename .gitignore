@@ -2,3 +2,7 @@ config.json
 aniGamer.db
 cookie.txt
 sn_list.txt
+sn_list-sample.txt
+.dockerignore
+.env
+**/SourceRepository/
