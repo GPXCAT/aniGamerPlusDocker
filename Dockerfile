@@ -14,9 +14,8 @@ RUN python3 -m venv /venv
 ENV PATH=/venv/bin:$PATH
 
 WORKDIR /app
-RUN git clone https://github.com/miyouzi/aniGamerPlus.git /app && \
-    rm -rf /app/.git && \
-    pip3 install --upgrade pip && \
+COPY ./SourceRepository/ .
+RUN pip3 install --upgrade pip && \
     pip3 install --no-cache-dir -r requirements.txt
 
 # final stage
