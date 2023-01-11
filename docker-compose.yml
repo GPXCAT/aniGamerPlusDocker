@@ -7,6 +7,8 @@ services:
       context: .
     image: "ani-gamer-plus:latest"
     container_name: "ani-gamer-plus"
+    environment:
+      TZ: Asia/Taipei
     volumes:
       - "./bangumi:/app/bangumi"
       - type: bind
