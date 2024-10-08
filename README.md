@@ -2,12 +2,12 @@ FROM https://github.com/miyouzi/aniGamerPlus
 
 Build Image
 ```bash
-docker-compose build --no-cache
+docker compose build --no-cache
 ```
 
-Run With Docker-Compose
+Run With Docker Compose
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Init config.json
