@@ -11,7 +11,7 @@ $params['page']++;
 $allList = array_merge($allList, $list);
 echo "sn_list.txt:\n\n";
 foreach ($allList as $anime) {
-    echo $anime['firstVideoId'] . " all #" . $anime['title'] . "\n";
+    echo $anime['firstVideoId'] . " all <" . $anime['year'] . " " . $anime['title'] . "> #" . $anime['title'] . "\n";
 }
 
 // 取得我的動畫列表
@@ -30,6 +30,8 @@ function getList($params)
     $animeRefList = $out[1];
     preg_match_all("/\<p\ class\=\'theme\-name\'\>(.+)\<\/p\>/", $output, $out, PREG_PATTERN_ORDER);
     $animeTitleList = $out[1];
+    preg_match_all("/\<p\ class\=\'theme\-time\'\>(.+)\<\/p\>/", $output, $out, PREG_PATTERN_ORDER);
+    $animeYearList = $out[1];
 
     $list = [];
     foreach ($animeRefList as $key => $value) {
@@ -38,6 +40,11 @@ function getList($params)
     }
     foreach ($animeTitleList as $key => $value) {
         $list[$key]['title'] = $value;
+    }
+    foreach ($animeYearList as $key => $value) {
+        $value = str_replace("年份：", "", $value);
+        $value = str_replace("/", "-", $value);
+        $list[$key]['year'] = $value;
     }
 
     return $list;
