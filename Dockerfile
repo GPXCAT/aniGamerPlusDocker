@@ -19,7 +19,7 @@ ENV PATH=/venv/bin:$PATH
 WORKDIR /app
 COPY --from=git-stage /app/SourceRepository /app
 # COPY ./SourceRepository/ .
-RUN pip3 install --upgrade pip && \
+RUN pip3 install --upgrade pip setuptools wheel && \
     pip3 install --no-cache-dir -r requirements.txt
 
 # final stage
