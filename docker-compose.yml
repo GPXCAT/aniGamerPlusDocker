@@ -4,24 +4,25 @@ services:
   ani-gamer-plus:
     build:
       context: .
-    image: "ani-gamer-plus:latest"
+      args:
+        REF: ${ANIGAMER_REF:-master}
+    image: "ani-gamer-plus:${IMAGE_TAG:-latest}"
     container_name: "ani-gamer-plus"
     environment:
-      TZ: Asia/Taipei
+      TZ: ${TZ:-Asia/Taipei}
     volumes:
-      - "./bangumi:/app/bangumi"
-      - type: bind
-        source: ./config.json
-        target: /app/config.json
-      - type: bind
-        source: ./aniGamer.db
-        target: /app/aniGamer.db
-      - type: bind
-        source: ./cookie.txt
-        target: /app/cookie.txt
-      - type: bind
-        source: ./sn_list.txt
-        target: /app/sn_list.txt
+      - "${BANGUMI_DIR:-./bangumi}:/app/bangumi"
+      - "./logs:/app/logs"
+      # 以下檔案需先存在 (執行 ./setup.sh)，否則 Docker 會建立成資料夾
+      - { type: bind, source: ./config.json, target: /app/config.json }
+      - { type: bind, source: ./aniGamer.db, target: /app/aniGamer.db }
+      - { type: bind, source: ./cookie.txt, target: /app/cookie.txt }
+      - { type: bind, source: ./sn_list.txt, target: /app/sn_list.txt }
     ports:
-      - "5000:5000"
+      - "${PORT:-5000}:5000"
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

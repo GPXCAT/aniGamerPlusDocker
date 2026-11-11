@@ -1,0 +1,2 @@
+# Windows checkout 時保持 LF，避免 shell script 在 Linux 執行失敗
+*.sh text eol=lf

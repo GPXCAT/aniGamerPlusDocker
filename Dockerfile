@@ -1,39 +1,37 @@
-ARG python=python:3.8-slim-bullseye
+ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 
-FROM alpine/git AS git-stage
-RUN git clone https://github.com/miyouzi/aniGamerPlus.git /app/SourceRepository
+# 取得上游原始碼 (REF 可以是 branch / tag / commit)
+FROM alpine/git AS source
+ARG REPO=https://github.com/miyouzi/aniGamerPlus.git
+ARG REF=master
+RUN git clone --filter=blob:none "$REPO" /src && \
+    git -C /src checkout "$REF" && \
+    rm -rf /src/.git
 
-# build stage
-FROM ${python} AS build-env
-
-RUN apt update && \
-    DEBIAN_FRONTEND=noninteractive && \
-    apt install --no-install-recommends --assume-yes \
-    git g++ gcc make libevent-dev libffi-dev libxml2-dev libxslt-dev zlib1g-dev && \
+# 安裝 Python 套件
+FROM ${PYTHON_IMAGE} AS build
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+        g++ gcc make libevent-dev libffi-dev libxml2-dev libxslt-dev zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
-
-# Create the virtual environment.
 RUN python3 -m venv /venv
 ENV PATH=/venv/bin:$PATH
+COPY --from=source /src/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
 
-WORKDIR /app
-COPY --from=git-stage /app/SourceRepository /app
-# COPY ./SourceRepository/ .
-RUN pip3 install --upgrade pip setuptools wheel && \
-    pip3 install --no-cache-dir -r requirements.txt
-
-# final stage
-FROM ${python}
-
-RUN apt update && \
-    DEBIAN_FRONTEND=noninteractive && \
-    apt install --no-install-recommends --assume-yes \
-    ffmpeg && \
+# 執行環境
+FROM ${PYTHON_IMAGE}
+ARG REF=master
+LABEL org.opencontainers.image.source="https://github.com/miyouzi/aniGamerPlus" \
+      org.opencontainers.image.revision="${REF}"
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y ffmpeg && \
     rm -rf /var/lib/apt/lists/*
-
-COPY --from=build-env /venv /venv
-COPY --from=build-env /app /app
-ENV PATH=/venv/bin:$PATH
-
+COPY --from=build /venv /venv
+COPY --from=source /src /app
+ENV PATH=/venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
-ENTRYPOINT [ "python3", "-u", "aniGamerPlus.py" ]
+EXPOSE 5000
+ENTRYPOINT ["python3", "-u", "aniGamerPlus.py"]

@@ -1,18 +1,22 @@
 #!/bin/sh
-export WORK_DIR=$PWD
+# 以上游最新 commit 建置映像檔，並同時標上 latest 與版本 tag (例: v25.2-e8f1f56)
+# 用法: ./build.sh [branch|tag|commit]   (預設 master)
+set -eu
+cd "$(dirname "$0")"
 
-rm -rf "$WORK_DIR/SourceRepository"
-git clone https://github.com/miyouzi/aniGamerPlus.git "$WORK_DIR/SourceRepository"
-cp -f "$WORK_DIR/SourceRepository/sn_list-sample.txt" "$WORK_DIR/sn_list-sample.txt"
-[ ! -f "$WORK_DIR/sn_list.txt" ] && touch "$WORK_DIR/sn_list.txt"
-[ ! -f "$WORK_DIR/aniGamer.db" ] && touch "$WORK_DIR/aniGamer.db"
-[ ! -f "$WORK_DIR/cookie.txt" ] && touch "$WORK_DIR/cookie.txt"
-if [ ! -f "$WORK_DIR/config.json" ]; then
-    cp -f "$WORK_DIR/SourceRepository/config-sample.json" "$WORK_DIR/config.json"
-    sed -i 's/127.0.0.1/0.0.0.0/g' "$WORK_DIR/config.json"
-fi
+REPO=https://github.com/miyouzi/aniGamerPlus.git
+REF=${1:-master}
 
-cd "$WORK_DIR/SourceRepository"
-export APP_TAG=$(git describe --tags --abbrev=0)-$(git rev-parse --short HEAD)
-cd "$WORK_DIR"
-docker build -t ani-gamer-plus:latest --no-cache -t ani-gamer-plus:${APP_TAG} .
+./setup.sh
+
+# 不用 clone，直接查遠端版本
+SHA=$(git ls-remote "$REPO" "$REF" "refs/tags/$REF^{}" | head -n1 | cut -c1-7)
+[ -n "$SHA" ] || SHA=$(echo "$REF" | cut -c1-7)   # REF 本身就是 commit
+TAG=$(git ls-remote --tags --sort=-v:refname "$REPO" 'v*' | grep -v '\^{}' | head -n1 | sed 's#.*refs/tags/##')
+APP_TAG="${TAG}-${SHA}"
+
+echo "Build ani-gamer-plus:${APP_TAG} (ref: ${REF})"
+docker build --pull \
+    --build-arg REF="$SHA" \
+    -t ani-gamer-plus:latest \
+    -t "ani-gamer-plus:${APP_TAG}" .

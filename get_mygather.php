@@ -1,68 +1,71 @@
 <?php
-$allList = [];
-$params = [
-    'page' => $argv[1] ?? 1,
+// 從「我的動畫」收藏列表產生 sn_list.txt 內容
+// 用法: php get_mygather.php [頁數]   (需要 cookie.txt)
+
+$page = (int)($argv[1] ?? 1);
+$cookie = trim(@file_get_contents(__DIR__ . '/cookie.txt'));
+if ($cookie === '') {
+    fwrite(STDERR, "cookie.txt 不存在或是空的\n");
+    exit(1);
+}
+
+$list = getList($cookie, [
+    'page' => $page,
     // 'sort' => 0, //依更新日排序
     'sort' => 1, //依加入日排序
-];
+]);
 
-$list = getList($params);
-$params['page']++;
-$allList = array_merge($allList, $list);
-echo "sn_list.txt:\n\n";
-foreach ($allList as $anime) {
-    echo $anime['firstVideoId'] . " all <" . $anime['year'] . " " . $anime['title'] . "> #" . $anime['title'] . "\n";
+// 只有結果輸出到 stdout，可直接 >> sn_list.txt
+foreach ($list as $anime) {
+    if (!$anime['firstVideoId']) {
+        fwrite(STDERR, "找不到第一集: {$anime['title']} (ref {$anime['refId']})\n");
+        continue;
+    }
+    echo "{$anime['firstVideoId']} all <{$anime['year']} {$anime['title']}> #{$anime['title']}\n";
+}
+
+function request($url, $cookie, $followRedirectInfo = false)
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_COOKIE => $cookie,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERAGENT => 'Mozilla/5.0',
+        CURLOPT_TIMEOUT => 30,
+    ]);
+    $output = curl_exec($ch);
+    $redirect = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+    curl_close($ch);
+    return $followRedirectInfo ? (string)$redirect : (string)$output;
 }
 
 // 取得我的動畫列表
-function getList($params)
+function getList($cookie, $params)
 {
-    echo "get list with params: " . json_encode($params) . " ...\n";
-    $cookie = file_get_contents('cookie.txt');
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://ani.gamer.com.tw/mygather.php?" . http_build_query($params));
-    curl_setopt($ch, CURLOPT_COOKIE, $cookie);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $output = curl_exec($ch);
-    curl_close($ch);
+    fwrite(STDERR, "get list with params: " . json_encode($params) . " ...\n");
+    $output = request("https://ani.gamer.com.tw/mygather.php?" . http_build_query($params), $cookie);
 
-    preg_match_all("/animeRef.php\?sn=(\d+)/", $output, $out, PREG_PATTERN_ORDER);
-    $animeRefList = $out[1];
-    preg_match_all("/\<p\ class\=\'theme\-name\'\>(.+)\<\/p\>/", $output, $out, PREG_PATTERN_ORDER);
-    $animeTitleList = $out[1];
-    preg_match_all("/\<p\ class\=\'theme\-time\'\>(.+)\<\/p\>/", $output, $out, PREG_PATTERN_ORDER);
-    $animeYearList = $out[1];
+    preg_match_all("/animeRef\.php\?sn=(\d+)/", $output, $refs);
+    preg_match_all("/<p class='theme-name'>(.+?)<\/p>/", $output, $titles);
+    preg_match_all("/<p class='theme-time'>(.+?)<\/p>/", $output, $years);
 
     $list = [];
-    foreach ($animeRefList as $key => $value) {
-        $list[$key]['refId'] = $value;
-        $list[$key]['firstVideoId'] = getFirstVideo($value);
+    foreach ($refs[1] as $i => $refId) {
+        $year = str_replace(["年份：", "/"], ["", "-"], $years[1][$i] ?? '');
+        $list[] = [
+            'refId' => $refId,
+            'firstVideoId' => getFirstVideo($cookie, $refId),
+            'title' => html_entity_decode($titles[1][$i] ?? '', ENT_QUOTES, 'UTF-8'),
+            'year' => $year,
+        ];
     }
-    foreach ($animeTitleList as $key => $value) {
-        $list[$key]['title'] = $value;
-    }
-    foreach ($animeYearList as $key => $value) {
-        $value = str_replace("年份：", "", $value);
-        $value = str_replace("/", "-", $value);
-        $list[$key]['year'] = $value;
-    }
-
     return $list;
 }
 
-// 取得我的動畫列表
-function getFirstVideo($refId)
+// 取得動畫第一集的 sn
+function getFirstVideo($cookie, $refId)
 {
-    $cookie = file_get_contents('cookie.txt');
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://ani.gamer.com.tw/animeRef.php?sn=" . $refId);
-    curl_setopt($ch, CURLOPT_COOKIE, $cookie);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HEADER, true);
-    $result = curl_exec($ch);
-    $header = curl_getinfo($ch);
-
-    preg_match_all("/animeVideo.php\?sn=(\d+)/", $header['redirect_url'], $out, PREG_PATTERN_ORDER);
-    usleep(300);
-    return $out[1][0];
+    $redirect = request("https://ani.gamer.com.tw/animeRef.php?sn=" . $refId, $cookie, true);
+    usleep(300 * 1000); // 0.3 秒，避免請求太快
+    return preg_match("/animeVideo\.php\?sn=(\d+)/", $redirect, $m) ? $m[1] : null;
 }

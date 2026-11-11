@@ -1,0 +1,3 @@
+# 原始碼在 Dockerfile 內 clone，不需要任何本機檔案
+# (避免把 bangumi/ 下載的影片送進 build context)
+*
